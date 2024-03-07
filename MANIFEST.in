@@ -1,0 +1,14 @@
+exclude .gitignore
+exclude .pylintrc
+exclude setup.cfg
+exclude extract.sh
+exclude setup.*
+exclude MANIFEST.in
+recursive-exclude pylintr *
+recursive-exclude ppk.egg-info *
+include LICENSE
+include NOTICE
+include ppk.sh
+include ppk.py
+include requirements.txt
+include ppk/libs/upack/upack
