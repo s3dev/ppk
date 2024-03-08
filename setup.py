@@ -33,7 +33,7 @@
 import os
 from setuptools import setup, find_packages
 # locals
-from ppk.libs.about import appinfo as ai
+from lib.about import appinfo as ai
 
 
 class Setup:
@@ -47,6 +47,7 @@ class Setup:
     AUTHOR_EMAIL    = ai.author_email
     URL             = ai.app_name
     LICENSE         = ai.license
+    MIN_PYTHON      = '>=3.6'
     ROOT            = os.path.realpath(os.path.dirname(__file__))
     PACKAGE_ROOT    = os.path.join(ROOT, PACKAGE)
     INCL_PKG_DATA   = True
@@ -55,6 +56,9 @@ class Setup:
                        'Programming Language :: Python :: 3.7',
                        'Programming Language :: Python :: 3.8',
                        'Programming Language :: Python :: 3.9',
+                       'Programming Language :: Python :: 3.10',
+                       'Programming Language :: Python :: 3.11',
+                       'Programming Language :: Python :: 3.12',
                        'Development Status :: 4 - Beta',
                        'Environment :: Console',
                        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
@@ -63,7 +67,7 @@ class Setup:
                        'Topic :: Utilities']
 
     # PACKAGE REQUIREMENTS
-    REQUIRES        = []
+    REQUIRES        = ['beautifulsoup4', 'requests', 'utils4']
     PACKAGES        = find_packages()
 
     # ADD DATA AND DOCUMENTATION FILES
@@ -75,7 +79,7 @@ class Setup:
         setup(name=self.PACKAGE,
               version=self.VERSION,
               platforms=self.PLATFORMS,
-              python_requires='>=3.6',
+              python_requires=self.MIN_PYTHON,
               description=self.DESC,
               author=self.AUTHOR,
               author_email=self.AUTHOR_EMAIL,

@@ -1,24 +1,34 @@
+
 # ppk - Python Package Check
 
 A Python library download and vulnerability-check tool used to help safely transfer libraries to secured environments.
 
-## What Is it?
-The `ppk` utility is, at its very core, a wrapper around the `pip download`command - with added security checking functionality.
+## Overview
+If you maintain an offline, or air-gapped pip repository in a secured environment, it's important to keep that repo clean and free from libraries with known vulnerabilities, or malicious code. This is where `ppk` comes in.
 
-Using the supplied arguments, a Python library (and its dependencies) are downloaded from [PyPI](https://pypi.org/) using a subprocess call to `pip download`. Once the download has completed, a series of vulnerability checks are conducted on *each* downloaded file to help ensure the code contained within is not reported to be malicious.
+The `ppk` application comes in two parts, the *packer* and the *unpacker*. The packer is installed on an internet connected PC and used to retrieve libraries (and their dependencies) from pip. If the downloaded files pass security checks, they are bundled into an encrypted archive. This archive is transferred to the secured environment and unpacked into the local pip repo by the unpacker.
+
+## How does it work?
+The `ppk` packer utility is, at its very core, a wrapper around the `pip download` command - with added security checking functionality.
+
+Using the supplied arguments, a Python library (and its dependencies) are downloaded from [PyPI](https://pypi.org/) using a subprocess call to `pip download`. Once the download has completed, a series of vulnerability checks are conducted on *each* downloaded file to help ensure the code contained within is not reported to have vulnerabilities or to be malicious.
 
 The following vulnerability tests are conducted on *each* downloaded file:
  - **MD5 checksum:** The hash of the downloaded file is compared with the hash for the same file, as stored by PyPI.
  - **Security vulnerabilities:** The [Snyk security database](https://security.snyk.io/) is searched to determine if any vulnerabilities have been discovered and reported in the specific library.
 
-If all security checks pass, a `.zip` file archive is created on your desktop containing the downloaded libraries. 
+If all security checks pass, an encrypted `.7z` archive is created on your desktop containing the downloaded libraries. This archive is then transferred to the secured environment. 
 
-Finally, the `ppk` utility is used to unpack this archive into the cluster's secured local pip repository; where they can be installed using a standard `pip install <package-name>` command from the terminal.
+Finally, `ppk`'s *unpacker* utility is used to unpack this archive into the environment's secured local pip repository; where a user can install the library using a standard `pip install <package-name>` command from the terminal.
 
-## Getting Started
-This section provides a quick-start guide to getting up and running.
+### 7zip 
+Beginning with `ppk` version 0.2, we introduced *encrypted archiving* to help make the archive transfer more secure, and requires 7zip to be installed on your system.
 
-The `ppk` utility is deployed on the AI cluster in `/mnt/core/usr/local/bin`, and can be accessed at any time by simply typing `ppk` into the terminal.
+If you don't have 7zip available, it is [freely available](https://7-zip.org/faq.html) under the [GNU LGPL licence](https://7-zip.org/faq.html#developer_faq), and may be [downloaded here](https://7-zip.org/), for Windows. If using Linux, [p7zip for Debian](https://packages.debian.org/sid/p7zip-full) can be installed with `sudo apt install p7zip-full`.
+
+
+## Getting started
+This section provides a quick-start guide to getting up and running. The `ppk` utility is generally installed the `/usr/local/bin` directory, and can be accessed at any time by simply typing `ppk` into the terminal.
 
 For example, the help menu can be displayed at any point by providing the `--help` argument:
 
@@ -26,28 +36,30 @@ For example, the help menu can be displayed at any point by providing the `--hel
 $ ppk --help
 ``` 
 
-### Downloading `ppk`
-There are times when you'll need to run `ppk` from your local (internet attached) PC. To obtain a copy of the utility, `ppk` can be [download](http://rrai01git01:3000/Insight/ppk/archive/master.tar.gz) from the cluster's local Gogs repository.
+### Downloading and installing
 
-Download and extract the archive to a location of your choice.
+The simple steps below guide you through downloading, building and installing `ppk`. 
 
-**Note:** The commands shown in the examples throughout this documentation demonstrate use *from the cluster*. When running from your local PC, the commands look look like:
+**Note:** `ppk` must be installed on the secured environment *and* on an internet-connected PC.
 
-``` bash
-$ cd /path/to/ppk
-$ python3 ppk.py <argument>
-```
-
+1. Create a Python virtual environment, from which `ppk` will be run.
+2. Download the source from [GitHub](https://github.com/S3DEV/ppk).
+3. [Optional]: Change the path to the local pip repo in the `lib/upack.d/src/base.h` file, updating the `PATH_REPO` macro name. This is the path into which the unpacker will transfer the libraries. 
+4. Run the `build.sh` script to build the unpacker for your CPU, and create the source distribution for install.
+5. Copy the `dist/ppk-<version>.tar.gz` archive to your `~/Downloads` directory, and unpack.
+6. Navigate to your `~/Downloads/ppk-<version>` directory and run `install.sh`.
+	- Enter the path to the virtual environment created above. For example: `/var/venvs/ppk311`
+	- Enter the installation path for `ppk`. The default is `/usr/local/bin`.
+7. Test the installation was successful by typing: `ppk --help`
+8. [Optional]: Update the name of the program used to refresh the pip repo in the `lib/config.json` file, updating the `pip_refresh_prog` key.
 
 ## Using `ppk` to download from PyPI
-The following headings demonstrate how `ppk` can be used to download a Python library from PyPI.
+The following headings demonstrate various methods, in increasing complexity, `ppk` can be used to download a Python library from PyPI.
 
-**Notes:** All of the following examples:
-- should be run on an PC *with internet access*
-- assume the directory path to `ppk` is in `$PATH` and, `ppk` is a symlink to the location of `ppk.py`; as this is the setup on the cluster  
+**Note:** All of the following examples must be run on an PC *with internet access*.
 
 #### Simplest
-The following example demonstrates a simplified use of the utility to download the `pandas` library:
+The following example demonstrates a simplified use of the utility to download the latest version of the  `pandas` library:
 
 ``` bash
 # Download pandas
@@ -61,6 +73,7 @@ The following example demonstrates how a *specific version* of the `pandas` libr
 # Download pandas version 2.0.1
 $ ppk pandas==2.0.1
 ```
+
 If the library version is not specified, the download will default to the latest version available.
 
 #### Specifying the Python version
@@ -70,7 +83,8 @@ The following example demonstrates how a specific version of the `pandas` librar
 # Download pandas version 2.0.1 for Python 3.11
 $ ppk pandas==2.0.1 --python_version 311
 ```
-If the Python version is not specified, the download will default to the Python version of the current interpreter.
+
+If the Python version is not specified, the download will default to the Python version of the current interpreter, or virtual environment.
 
 #### Specifying the platform
 There are times when a platform (or system architecture) will need to be supplied. For example, you are working on an amd64 architecture, but need a library compiled for a Linux aarch64 architecture - however the aarch64 PC is not connected to the internet.
@@ -81,6 +95,7 @@ The following example demonstrates how a specific version of the `pandas` librar
 # Download pandas version 2.0.1 for Python 3.11, and an aarch64 CPU architecture
 $ ppk pandas==2.0.1 --python_version 311 --platform manylinux2014_aarch64
 ```
+
 If the platform is not specified, the download will default to the platform of the current interpreter.
 
 #### Using a `requirements.txt` file
@@ -96,6 +111,7 @@ pytz==2023.3.post1
 six==1.16.0
 tzdata==2023.3
 ``` 
+
 The following example demonstrates how to pass a `requirements.txt` file to `ppk`:
 
 ``` bash
@@ -103,12 +119,17 @@ The following example demonstrates how to pass a `requirements.txt` file to `ppk
 $ ppk /path/to/requirements.txt
 ```
 
-## Transferring a Downloaded Archive to the Cluster
-Once the Python libraries have been downloaded and tested, they are archived into a `.zip` file on your local desktop. However, if the security checks fail, an archive is *not* created. The `ppk` utility is then used to *transfer* the downloaded libraries onto the cluster's secured local pip repository.
+## Transferring and unpacking an encrypted archive
+Once the Python libraries have been downloaded and tested, they are archived into an encrypted `.7z` file on your local desktop, ready for transfer to the secured environment. However, if the security checks fail, an archive is *not* created. The `ppk` utility is then used to *unpack* the downloaded libraries onto the environment's secured local pip repository.
 
-### Verify and Transfer an Archive
-To verify and transfer a *clean* archive, simply pass the `.zip` file into `ppk`. For example, to transfer an archive (created by the commands above) for `pandas` 2.0.1, from an archive on your desktop to the cluster's local pip repository:
+### Verify and unpack an archive
+First, transfer the encrypted archive (the `.7z` file) to the secured environment. Note: This environment must also have `ppk` installed. Refer to the installation guidance above if needed.
+
+Next, use `ppk`'s unpacker to to decrypt the archive and transfer the libraries into the local pip repo. For example, to decrypt and transfer the archive we downloaded earlier for `pandas` 2.0.1:
 
 ``` bash
-$ ppk ~/Desktop/pandas-2.0.1-cp311-cp311-manylinux2014_x86_64.zip
+$ ppk ~/Desktop/pandas-2.0.1-cp311-cp311-manylinux2014_x86_64.7z
 ```
+
+When `ppk` detects a file extension of `.7z`, the unpacker utility is automatically called.
+
