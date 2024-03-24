@@ -43,7 +43,7 @@ The simple steps below guide you through downloading, building and installing `p
 **Note:** `ppk` must be installed on the secured environment *and* on an internet-connected PC.
 
 1. Create a Python virtual environment, from which `ppk` will be run.
-2. Download the source from [GitHub](https://github.com/S3DEV/ppk).
+2. Download the source from [GitHub](https://github.com/s3dev/ppk/archive/refs/heads/master.zip).
 3. [Optional]: Change the path to the local pip repo in the `lib/upack.d/src/base.h` file, updating the `PATH_REPO` macro name. This is the path into which the unpacker will transfer the libraries. 
 4. Run the `build.sh` script to build the unpacker for your CPU, and create the source distribution for install.
 5. Copy the `dist/ppk-<version>.tar.gz` archive to your `~/Downloads` directory, and unpack.

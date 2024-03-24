@@ -1,6 +1,6 @@
 # Directories to include
 recursive-include ./bin *.py
-recursive-include ./lib *.py upack.d/bin/*
+recursive-include ./lib *.json *.py upack.d/bin/*
 
 # Files to include
 include LICENSE

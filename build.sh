@@ -16,7 +16,7 @@ printf "\nUpdating requirements.txt file ...\n"
 pipreqs . --force
 
 printf "\nBuilding wheel ...\n"
-./setup.py sdist
+./.setup.py sdist
 
 mv {,.}install.sh
 

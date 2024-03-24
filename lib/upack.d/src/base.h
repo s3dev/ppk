@@ -5,6 +5,9 @@
 
     v0.2.0.dev1: Removed the explicit definition of __DEV_MODE as this is
     now invoked in the Makefile as: $ make MODE=dev
+
+    v0.2.0.dev2: Updated the default production repo path to 
+    /tmp/pip/repo.
 */
 
 
@@ -33,12 +36,12 @@
         #define PATH_REPO PATH_TMP "pip/repo"
     #else
         // Production paths
-        #define PATH_REPO "/mnt/install/pip/repo"
+        #define PATH_REPO "/tmp/pip/repo"
     #endif /* __DEV_MODE */
     // Constants
     static const char *_APP_DESC = "PyPI library archive validation and unpacking utility.";
     static const char *_APP_LONG_NAME = "PPK: Archive Unpacker";
     static const char *_APP_NAME = "upack";
-    static const char *_VERSION = "0.2.0.dev1";
+    static const char *_VERSION = "0.2.0.dev2";
 #endif /* _BASE_H  */
 
