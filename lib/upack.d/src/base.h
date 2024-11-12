@@ -8,10 +8,13 @@
 
     v0.2.0.dev2: Updated the default production repo path to 
     /tmp/pip/repo.
+
+    v0.2.1: See changelog.
 */
 
 
 #ifndef _BASE_H
+
     #define _BASE_H
     // Include statements
     #include <errno.h>
@@ -42,6 +45,7 @@
     static const char *_APP_DESC = "PyPI library archive validation and unpacking utility.";
     static const char *_APP_LONG_NAME = "PPK: Archive Unpacker";
     static const char *_APP_NAME = "upack";
-    static const char *_VERSION = "0.2.0.dev2";
+    static const char *_VERSION = "0.2.1";
+
 #endif /* _BASE_H  */
 

@@ -78,6 +78,7 @@ class Main:
             ui.print_alert('\nThe following error occured, halting execution:\n', style='bold')
             tbstr = traceback.format_exception(err)
             print(*tbstr, sep='\n')
+            excode = 73
         sys.exit(excode)
 
     def _parse_args(self):

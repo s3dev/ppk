@@ -13,10 +13,10 @@ printf "\nIncluding the installer ...\n"
 mv {.,}install.sh
 
 printf "\nUpdating requirements.txt file ...\n"
-pipreqs . --force
+preqs . --replace
 
-printf "\nBuilding wheel ...\n"
-./.setup.py sdist
+printf "\nBuilding source distribution ...\n"
+python -m build --sdist
 
 mv {,.}install.sh
 

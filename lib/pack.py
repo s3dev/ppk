@@ -474,10 +474,13 @@ class PPKPacker:
         pkgs = glob(os.path.join(self._tmpdir, '*'))
         for fpath in pkgs:
             fname = os.path.basename(fpath)
-            # Parse .tar.gz files differently.
-            if os.path.splitext(fname)[1] == '.gz':
+            fn, ext = os.path.splitext(fname)
+            # Parse .tar.gz and .zip files differently from wheels.
+            if ext == '.gz':
                 *pkg_, vers_ = fname[:fname.rfind('.tar.gz')].split('-')
                 pkg_ = '-'.join(pkg_)
+            elif ext == '.zip':
+                pkg_, vers_ = fn.split('-')
             else:
                 pkg_, vers_, *_ = fname.split('-')
             args = {'fpath': fpath, 'name': pkg_, 'version': vers_}

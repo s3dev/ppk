@@ -17,17 +17,16 @@ import argparse
 import os
 import sys
 # locals
-from lib.about import appinfo as ai
+from lib._version import __version__
 
 
 class ArgParser:
     """Command line argument parser for the project."""
 
-
     # Project specifics.
-    _DESC = ai.description
-    _PROG = ai.app_name
-    _VERS = ai.version
+    _DESC = 'Python library and dependency integrity checking utility.'
+    _PROG = 'ppk'
+    _VERS = __version__
     # Project root directory.
     _D_ROOT = sys.path[0]
     # Help menu options and descriptions.
