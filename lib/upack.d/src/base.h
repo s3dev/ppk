@@ -45,7 +45,7 @@
     static const char *_APP_DESC = "PyPI library archive validation and unpacking utility.";
     static const char *_APP_LONG_NAME = "PPK: Archive Unpacker";
     static const char *_APP_NAME = "upack";
-    static const char *_VERSION = "0.2.1";
+    static const char *_VERSION = "0.3.0";
 
 #endif /* _BASE_H  */
 

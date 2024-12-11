@@ -27,7 +27,10 @@ import requests
 from bs4 import BeautifulSoup
 from utils4.crypto import crypto
 # locals
-from lib.utilities import utilities
+try:
+    from .lib.utilities import utilities
+except ImportError:
+    from lib.utilities import utilities
 
 
 class Tests:
@@ -113,12 +116,11 @@ class Tests:
             soup = BeautifulSoup(r.text, 'html.parser')
         # Find the table and rows.
         div = soup.find('div', attrs={'class': 'package-versions-table__table'})
-        rows = div.findAll('tr', attrs={'class': 'vue--table__row'})
+        rows = div.findAll('tr', attrs={'class': 'table__row'})  # Changed in v0.3.0
         # Skip header row.
         rows.pop(0)
         # Initialise the direct vulnerabilities set.
         dvset = set()
-        vuln = []
         vuln_n = []
         for row in rows:
             # Search for specific version.
@@ -126,20 +128,17 @@ class Tests:
                 td = row.findAll('td')
                 if td:
                     # Extract relevent values.
-                    # vers = td[0].text.strip()
-                    # date = td[1].text.strip()
-                    vuln = list(filter(None, td[2].text.split(' ')))
-                    vuln_n = list(map(int, vuln[::2]))  # Numeric vulnerabilities
-                    # If any direct vulnerabilities are found, capture them.
+                    vuln_n = list(map(lambda x: int(x.text), td[2].findAll('div')))  # Changed in v0.3.0
+                    # If any direct vulnerabilities are found, report them.
                     if any(vuln_n):
                         with requests.get(f'{url}/{version}', timeout=10) as r:
                             soup = BeautifulSoup(r.text, 'html.parser')
                         # soup = soupv  # Read from file -- DEV ONLY.
                         div = soup.find('div', attrs={'class': 'vulns-table__wrapper'})
-                        rows = div.findAll('tr', attrs={'class': 'vue--table__row'})
+                        rows = div.findAll('tr', attrs={'class': 'table__row'})  # Changed in v0.3.0
                         rows.pop(0)  # Skip header row.
                         for row in rows:
-                            vlabel = row.find('span', attrs={'class': 'vue--severity__label'}).text
+                            vlabel = row.find('abbr', attrs={'class': 'severity__text'}).text.strip()  # Changed in v0.3.0
                             vtitle = row.find('a').text.strip()
                             vvers = row.find('div', attrs={'class': 'vulnerable-versions'}).text.strip()
                             dvset.add((vlabel, vtitle, vvers))
@@ -155,6 +154,6 @@ class Tests:
             for i in dvset:
                 print(tmpl.format(*i))
             print()
-        else:
+        if not any(vuln_n):
             print(f'{name} v{version} has no reported direct vulnerabilities.')
         return (not any(vuln_n[:2]), *vuln_n)  # Pass --> No C(ritical) or H(igh) vulnerabilities.

@@ -9,6 +9,9 @@ pushd ./lib/upack.d/src
 make
 popd
 
+printf "\nInstalling required Python libraries ...\n"
+python3 -m pip install beautifulsoup4 build preqs requests utils4
+
 printf "\nIncluding the installer ...\n"
 mv {.,}install.sh
 
