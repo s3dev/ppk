@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #-------------------------------------------------------------------------
 # Prog:     install.sh
-# Version:  0.1.0
+# Version:  0.2.0
 # Desc:     Primary installer script for the ppk project.
 #
 #           Using the inputs from the user, this script generates the 
@@ -14,7 +14,9 @@
 #           Follow the prompts ...
 #
 # Updates:
-# 12.03.24  J. Berendt  Written
+# 12-03-24  J. Berendt  Written
+# 02-04-25  J. Berendt  Updated the shell wrapper creation to activate
+#                       and deactivate the venv. 
 #-------------------------------------------------------------------------
 
 # Initialise variables.
@@ -26,19 +28,22 @@ _dst_default="/usr/local/bin/"
 # Create the _ppk.sh wrapper script, and make it executable.
 #
 # Note: Some of the variables being redirected into the file must remain
-# unexpanded, as they are required by the script.
+#       unexpanded, as they are required by the script.
 #
 function create_wrapper {
 
-    # Determine the explicit path to the venv's python executable.
-    local path="$( find "${_venv}/bin" -name python )"
+    # Determine the explicit path to the venv's python activate executable.
+    local activatepath="$( find "${_venv}" -name activate )"
 
     # Create wrapper script.
     cat <<- EOF > ./bin/_ppk.sh
 	#!/usr/bin/env bash
 
 	_dir="\$( dirname "\$( realpath "\$0" )" )"
-	"${path}" "\${_dir}/ppk.py" "\$@"
+
+	. $activatepath
+	python "\${_dir}/ppk.py" "\$@"
+	deactivate
 
 	EOF
 

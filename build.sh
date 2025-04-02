@@ -5,7 +5,7 @@ printf "\nRemoving old build ...\n"
 rm -rf ./build ./dist ./ppk.egg-info ./requirements.txt
 
 printf "\nBuilding the unpacker ...\n"
-pushd ./lib/upack.d/src
+pushd ./lib/upack.d
 make
 popd
 

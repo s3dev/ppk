@@ -41,11 +41,31 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "base.h"
-#include "checks.h"
-#include "filesys.h"
-#include "ui.h"
-#include "utils.h"
+#include <errno.h>
+#include <libgen.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "../include/base.h"
+#include "../include/checks.h"
+#include "../include/config.h"
+#include "../include/filesys.h"
+#include "../include/ui.h"
+#include "../include/utils.h"
+
+/**
+    Load the config TOML file.
+
+    @param path Pointer to the full path to the config file.
+    @return Returns 0 if the config file was read and loaded successfully.
+            Otherwise non-zero.
+*/
+static int
+_loadconfig(const char *path) {
+
+    return ( configload(path) == 0 ) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
 
 /**
     Verify the command line argument(s) are as required.
@@ -56,15 +76,16 @@
 
     :Tests:
         - Number of arguments (aside from the program itself), is 1.
-        - The file must have a .7z extension.
         - The file must exist.
+        - The file must have a .7z binary file signature.
 
     @param[in] argc     Number of arguments passed.
     @param[in] argv     Array of command line argument strings.
 
     @return             0, if the arguments are found as expected.
 */
-int verify_args(int argc, const char *argv[]) {
+int
+verify_args(int argc, const char *argv[]) {
 
     char    msgbuff[256];
     char    *ext;
@@ -84,9 +105,8 @@ int verify_args(int argc, const char *argv[]) {
         reporterror(msgbuff, false, true);
     }
     fclose(fp);
-
-    // Verify the file has a .7z extension.
-    if ( ((ext = strrchr(argv[1], '.')) == NULL) || (strcmp(ext, ".7z")) ) {
+    // Test for .7z file signature.
+    if ( !is7zip(argv[1]) ) {
         reporterror("A .7z file is required, please refer to the program usage.", true, true);
     }
     return EXIT_SUCCESS;
@@ -109,16 +129,29 @@ int verify_args(int argc, const char *argv[]) {
     @return             0, if the program completes successfully,
                         otherwise 1.
 */
-int main(int argc, const char *argv[]) {
+int
+main(int argc, const char *argv[]) {
 
+    char *cfgpath = malloc(sizeof(char) * PATH_MAX + 1);
+    char *rpath;
     int excode;
 
+    // Derive the path to the config file.
+    rpath = realpath(argv[0], NULL);
+    dirname(rpath);
+    sprintf(cfgpath, "%s/config.toml", rpath);
+    free(rpath);
+    // Start checks and processing.
     excode = verify_args(argc, argv);
-    if ( !excode ) excode = unzip(argv[1], PATH_TMP_PPK);
+    if ( !excode ) excode = _loadconfig(cfgpath);
+    if ( !excode ) excode = unzip(argv[1], cfg->dir_ppk_tmp);
     if ( !excode ) excode = run_tests();
-    if ( !excode ) excode = moveall(PATH_TMP_PPK, PATH_REPO, false);
+    if ( !excode ) excode = moveall(cfg->dir_ppk_tmp, cfg->dir_pip_repo, false);
     // Delete the unpacking area regardless of the outcome.
-    removeall(PATH_TMP_PPK, 1, 0);
+    if ( cfg->dir_ppk_tmp ) removeall(cfg->dir_ppk_tmp, 1, 0);
+    // Memory cleaanup.
+    free(cfgpath);
+    configfree();
     if ( excode != 0 ) {
         print_warning("\nDone. Ended in error.");
         return EXIT_FAILURE;

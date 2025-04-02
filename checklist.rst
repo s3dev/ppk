@@ -12,6 +12,8 @@ Release Checklist
    - **Reminder:** Remove the `./dist` `./build` and `./<pkg>.egg-info` 
      directories first.
 
+#. Run 'make clean' in libs/upack.d to remove the build.
+
 #. Rebase and add final commit message.
 
 #. Update documentation (if applicable) on a new branch and rebase.

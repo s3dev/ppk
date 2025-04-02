@@ -31,7 +31,6 @@ import re
 import socket
 import shutil
 import subprocess as sp
-import sys
 from argparse import Namespace
 from collections import defaultdict
 from datetime import datetime as dt
@@ -41,6 +40,7 @@ from utils4.user_interface import ui
 # locals
 from lib.utilities import utilities
 from lib.vtests import Tests
+from lib.pip import Download
 
 
 class PPKPacker:
@@ -52,22 +52,23 @@ class PPKPacker:
 
     """
 
-    # List the tests to be run here. These are method names from the
-    # libs.tests.Tests class.
+    # List the tests to be run here.
+    # These are method names from the libs.tests.Tests class.
     _TESTS = ['md5', 'snyk']
 
     def __init__(self, args: Namespace):
         """Package check class initialiser."""
         self._args = args           # All arguments parsed from the CLI
-        self._abi = None            # The ABI tag, as parsed from the package filename.
+        self._abi = 'unset'         # The ABI tag, as parsed from the package filename.
         self._ofname = None         # The name of the outfile (no extension).
         self._md5 = None            # Package's MD5 digest from PyPI
         self._pass = False          # *Overall* passing flag for the entire test.
         self._passflags = []        # *Overall* passing flag from each test.
         self._pkg = None            # Name of the primary package (per CLI).
-        self._pkg_version = None    # Package version, as parsed from the filename.
-        self._py_version = None     # Python version for which the packages are downloaded.
-        self._platform = None       # Platform for which the packages are downloaded.
+        self._pkg_dl = None         # Downloaded package name (wheel, or tar.gz)
+        self._pkg_version = 'unset' # Package version, as parsed from the filename.
+        self._py_version = 'unset'  # Python version for which the packages are downloaded.
+        self._platform = 'unset'    # Platform for which the packages are downloaded.
         self._p_key = None          # Full path to the key file.
         self._p_log = None          # Full path to the log file.
         self._tmpdir = None         # Full path to the temp directory
@@ -77,7 +78,7 @@ class PPKPacker:
 
         :Processes:
 
-            - Parse the command line arguments.
+            - Normalise and set the package name.
             - Create the temporary download / working directory.
             - Run ``pip download`` via a subprocess call, using the
               arguments passed into the CLI by the user.
@@ -96,44 +97,51 @@ class PPKPacker:
             otherwise 1.
 
         """
-        self._parse_args()
+        self._set_package_name()
         self._make_download_directory()
-        self._pip_download()
-        self._get_package_version_number()
-        self._build_outfile_name()
-        self._verify_wheels()
-        self._log_summary()
-        self._copy_requirements_file()
-        self._create_archive()
-        self._cleanup()
-        self._print_summary()
+        # Only process if the target package was downloaded.
+        if self._pip_download():
+            self._get_package_version_number()
+            self._build_archive_name()
+            self._verify_wheels()
+            self._log_summary()
+            self._copy_requirements_file()
+            self._create_archive()
+            self._cleanup()
+            self._print_summary()
         return 0 if self._pass else 1
 
-    def _build_outfile_name(self):
-        """Build the outfile name, based on platform compatibility tags.
+    def _build_archive_name(self):
+        """Build the archive name, based on platform compatibility tags.
 
         Build a string following the convention, per the PyPA
         specification platform compatibility tag rules::
 
             pkg_name-pkg_version-python_version-abi_tag-platform_tag
 
-        If downloading from a requirements file, the output filename
+        If downloading from a requirements file, the archive filename
         convention is::
 
-            frz-username-datetime-python_version-python_version-platform_tag
+            frz-username-datetime-pkg_name-pkg_version-python_version-abi-platform
+
+        Otherwise, the archive filename convention is::
+
+            pkg_name-pkg_version-python_version-abi-platform
 
         """
         if self._args.from_req:
             self._ofname = (f'frz-'
                             f'{utilities.get_username()}-'
                             f'{dt.now().strftime("%Y%m%d%H%M%S")}-'
-                            f'cp{self._py_version}-'
-                            f'cp{self._py_version}-'
+                            f'{self._pkg}-'
+                            f'{self._pkg_version}-'
+                            f'{self._py_version}-'
+                            f'{self._abi}-'
                             f'{self._platform}')
         else:
             self._ofname = (f'{self._pkg}-'
                             f'{self._pkg_version}-'
-                            f'cp{self._py_version}-'
+                            f'{self._py_version}-'
                             f'{self._abi}-'
                             f'{self._platform}')
 
@@ -223,33 +231,6 @@ class PPKPacker:
                                               stderr.decode())))
             print('Done.')
 
-    def _fix_missing(self, msg: bytes):
-        """Update the requirements file to fix the missing binary library.
-
-        Args:
-            msg (bytes): Error message thrown by pip to stderr, directly
-                from the ``subprocess.Popen.communicate`` call.
-
-        Using pip's error message, the offending package name is
-        extracted. Then, a line (as shown below) is appended to the
-        requirements file, instructing pip to download the source
-        distribution::
-
-            --no-binary=<pkg_name>
-
-        Finally, re-call :meth:`_pip_download` to re-try the download
-        with the modified requirements file.
-
-        """
-        pkg = self._parse_err__no_matching_dist(msg=msg)
-        # Path exists test to version a requirements file is being used.
-        if pkg and os.path.exists(self._args.package[0]):
-            ui.print_(f'Modifying the requirements file and trying again for {pkg} ...',
-                      fore='brightcyan')
-            with open(self._args.package[0], 'a', encoding='utf-8') as f:
-                f.write(f'--no-binary={pkg}')
-            self._pip_download()
-
     def _generate_archive_filename(self) -> tuple[str, str]:
         """Generate the filename for the output archive.
 
@@ -262,33 +243,27 @@ class PPKPacker:
         return fname, hashlib.sha256(fname.encode()).hexdigest()
 
     def _get_package_version_number(self):
-        """Derive the package version, by parsing the filename.
+        """Derive the package version, by parsing the downloaded filename.
 
         This version is used for naming the archive and other associated
         files.
 
-        First, a ``glob`` pattern is tried against the temp directory.
-        If this does not return any results (e.g. in the case of a
-        difference in case like SQLAlchemy), a second attempt is made
-        using a case insensitive check on the strings returned from
-        ``os.listdir``.
-
         """
         if not self._args.from_req:
-            _pkg = self._pkg.translate({45: '*', 95: '*'})  # Discard - and _ chrs.
-            files = glob(os.path.join(self._tmpdir, f'{_pkg}-*'))
-            if not files:
-                # Try a case-insensitive search.
-                files = list(filter(lambda x: x.lower().startswith(self._pkg),
-                                    os.listdir(self._tmpdir)))
-            base = os.path.basename(files[0])
-            # Parse the version from the filename.
+            base = self._pkg_dl
+            # Source packages (.tar.gz)
             if os.path.splitext(base)[1] == '.gz':
-                # Source packages (.tar.gz) must be handled differently.
                 m = re.match(r'(.*?)(?:\.tar)?\.gz', base)
                 *_, self._pkg_version = m.group(1).split('-')
+            # Wheels
             else:
-                _, self._pkg_version, _, self._abi, *_ = base.split('-')
+                base_ = os.path.splitext(base)[0]
+                (_,
+                 self._pkg_version,
+                 self._py_version,
+                 self._abi,
+                 self._platform,
+                 *_) = base_.split('-')
 
     def _log(self, results: dict[list]):
         """Create a log file for this package's verification.
@@ -339,114 +314,34 @@ class PPKPacker:
             f.write(hash_)
 
     def _make_download_directory(self):
-        """Create the temporary download directory.
-
-        .. versionchanged: 0.2.0.dev1
-           Updated to use the ``/tmp`` directory as the temp directory's
-           parent, rather than the current directory.
-
-        """
+        """Create the temporary download directory."""
         self._tmpdir = os.path.join(os.path.realpath('/tmp'), os.urandom(8).hex())
         os.makedirs(self._tmpdir)
 
-    def _parse_args(self):
-        """Parse command line arguments.
+    def _set_package_name(self):
+        """Normalise and set the package name.
 
-        If the platform and Python version are not provided as CLI args,
-        the values are derived from the local system.
+        If the package name was provided with version constraints, these
+        are removed and any hyphens are converted to underscores.
 
         """
-        # pylint: disable=line-too-long
         chars = ('<', '>', '=')  # Version control chars to be removed.
         self._pkg = self._args.package[0].replace('-', '_')
-        self._platform = self._args.platform
-        self._py_version = self._args.python_version
-        # Populate with the current system's values, if not provided.
-        self._platform = self._platform[0] if self._platform else utilities.get_platform()
-        self._py_version = self._py_version[0] if self._py_version else utilities.get_python_version()
         # Clean: Remove the requested version from the package name.
         if set(chars).intersection(self._pkg):
             self._pkg = re.split(f'[{"".join(chars)}]', self._pkg, maxsplit=1)[0]
 
-    def _pip_download(self):
-        """Using a subprocess call, download the package via pip.
-
-        By design, the output from ``pip`` is streamed to the terminal.
-
-        The ``--only-binary=:all:`` argument is added to the pip command
-        if *any* of the following arguments are passed, as this is a
-        requirement by pip.
-
-            - ``--only_binary``
-            - ``--platform``
-            - ``--python_version``
-
-        If the ``pip download`` fails for any reason (returning a
-        non-zero exit code), the program is exited with an exit code of 1
-        and a force cleanup is performed.
-
-        """
-        report_and_exit = False  # Escape if the pip error thrown is not expected.
-        # Use the package name as passed into the CLI, as this *might* contain
-        # a specific version to be downloaded. The version has been stripped
-        # from the self._pkg attribute.
-        cmd = ['pip', 'download', '-d', self._tmpdir]
-        # Alter the pip command with user args from the CLI.
-        if self._args.from_req:
-            # Download from requirements file.
-            cmd.extend(['-r', self._args.package[0]])
-        else:
-            # Download from package name.
-            # _args is used here as the pkg might have a version number
-            # requirement, which was stripped out of _pkg.
-            cmd.extend([self._args.package[0]])
-        if not self._args.use_local:
-            cmd.extend(['-i', 'https://pypi.org/simple/'])
-        if self._args.platform:
-            cmd.extend(['--platform', self._args.platform[0]])
-        if self._args.python_version:
-            cmd.extend(['--python-version', self._args.python_version[0]])
-        # Always add the ---only-binary=:all: arg if the platform or
-        # py version are specified. This is a requirement by pip.
-        if any((self._args.only_binary, self._args.platform, self._args.python_version)):
-            cmd.extend(['--only-binary', ':all:'])
-        print('')  # Add blank line before pip output to aid readability.
-        # No stdout pipe is used so pip's output streams to the terminal.
-        with sp.Popen(cmd, stderr=sp.PIPE) as proc:
-            _, stderr = proc.communicate()
-            if proc.returncode:
-                print('', stderr.decode(), sep='\n')
-                if b'no matching distribution' in stderr.lower():
-                    # Fix the missing (library not found) issue.
-                    self._fix_missing(msg=stderr)
-                else:
-                    report_and_exit = True
-                if report_and_exit:
-                    ui.print_alert('\n[ERROR]: An error was thrown from pip. Exiting.\n')
-                    self._cleanup(force=True)
-                    sys.exit(1)
-        print('')  # Add blank line after pip output to aid readability.
-
-    @staticmethod
-    def _parse_err__no_matching_dist(msg: bytes) -> str:
-        """Extract the relevent package name from the error message.
-
-        Args:
-            msg (bytes): Error message directly from the
-                Popen.communicate stderr pipe.
+    def _pip_download(self) -> str | None:
+        """Download the package via pip.
 
         Returns:
-            str: Name of the offending package.
+            str | None: The filename of the downloaded target package,
+            otherwise None.
 
         """
-        # pylint: disable=line-too-long
-        pkg = None
-        msg = msg.decode()
-        rexp = re.compile(r'error: no matching distribution found for (?P<pkg>[\w-]+)(?:\\x1b)?', re.I)
-        s = rexp.search(msg)
-        if s:
-            pkg = s.groupdict().get('pkg')
-        return pkg
+        pipdl = Download(args=self._args, name=self._pkg, tmpdir=self._tmpdir)
+        self._pkg_dl = pipdl.get()
+        return self._pkg_dl is not None
 
     def _print_summary(self):
         """Print an end-of-processing summary to the terminal."""

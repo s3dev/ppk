@@ -25,11 +25,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
 #include <openssl/sha.h>
-#include "base.h"
-#include "filesys.h"
-#include "ui.h"
-#include "utils.h"
+#include "../include/base.h"
+#include "../include/config.h"
+#include "../include/filesys.h"
+#include "../include/ui.h"
+#include "../include/utils.h"
 
 // Function prototypes
 int run_tests(void);
@@ -54,8 +60,8 @@ int run_tests(void) {
     int     ex;
 
     // Obtain the paths to the log and key files.
-    path_key = findfile(PATH_TMP_PPK, ".key");
-    path_log = findfile(PATH_TMP_PPK, ".log");
+    path_key = findfile(cfg->dir_ppk_tmp, ".key");
+    path_log = findfile(cfg->dir_ppk_tmp, ".log");
     // Run the tests.
     print_start("\nVerifying the integrity of the archive ..."); 
     if ( (ex = test_key(path_key, path_log)) ) {

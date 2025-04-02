@@ -16,12 +16,7 @@
 #ifndef _BASE_H
 
     #define _BASE_H
-    // Include statements
-    #include <errno.h>
-    #include <stdbool.h>
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
+    
     // Colours
     #define ANSI_B_CYN "\033[96m"
     #define ANSI_B_GRN "\033[92m"
@@ -31,21 +26,12 @@
     #define ANSI_GRN "\033[32m"
     #define ANSI_RED "\033[31m"
     #define ANSI_RST "\033[0m"
-    // Paths
-    #define PATH_TMP "/tmp/"
-    #define PATH_TMP_PPK PATH_TMP ".ppk"
-    #ifdef __DEV_MODE
-        // Development paths
-        #define PATH_REPO PATH_TMP "pip/repo"
-    #else
-        // Production paths
-        #define PATH_REPO "/tmp/pip/repo"
-    #endif /* __DEV_MODE */
+    
     // Constants
-    static const char *_APP_DESC = "PyPI library archive validation and unpacking utility.";
+    static const char *_APP_DESC = "A ppk library archive validation and unpacking utility.";
     static const char *_APP_LONG_NAME = "PPK: Archive Unpacker";
     static const char *_APP_NAME = "upack";
-    static const char *_VERSION = "0.3.0";
+    static const char *_VERSION = "0.4.0";
 
 #endif /* _BASE_H  */
 

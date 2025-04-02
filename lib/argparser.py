@@ -24,7 +24,7 @@ class ArgParser:
     """Command line argument parser for the project."""
 
     # Project specifics.
-    _DESC = 'Python library and dependency integrity checking utility.'
+    _DESC = 'A Python library and dependency integrity checking utility.'
     _PROG = 'ppk'
     _VERS = __version__
     # Project root directory.
@@ -36,6 +36,7 @@ class ArgParser:
     _H_BINR = ('Do not use source packages.\n'
                'Packages without binary distributions will fail to\n'
                'download when this option is used on them.')
+    _H_NDEP = 'Do not download package dependencies.'
     _H_PKGN = (
                'If *downloading* a single library:\n'
                '  - Name of the library to be downloaded.\n'
@@ -93,10 +94,11 @@ class ArgParser:
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          epilog=self._epilog())
         parser.add_argument('package', nargs=1, type=str, help=self._H_PKGN)
-        parser.add_argument('--license', action='store_true', help=self._H_LICS)
+        parser.add_argument('--no_deps', action='store_true', help=self._H_NDEP)
         parser.add_argument('--only_binary', action='store_true', help=self._H_BINR)
         parser.add_argument('--platform', choices=self._C_PLAT, nargs=1, type=str, help=self._H_PLAT)
         parser.add_argument('--python_version', choices=self._C_PVER, nargs=1, type=str, help=self._H_PVER)
+        parser.add_argument('--license', action='store_true', help=self._H_LICS)
         parser.add_argument('-n', '--no_cleanup', action='store_true', help=self._H_NOCL)
         parser.add_argument('-u', '--use_local', action='store_true', help=self._H_USEL)
         parser.add_argument('-v', '--version', action='version', version=self._VERS)
@@ -174,6 +176,7 @@ class ArgParser:
             if not os.path.exists(arg):
                 raise FileNotFoundError(f'The requested requirements file was not found: {arg}')
             self._args.from_req = True
+        # TODO: Update this to use is7zip (file signature). Requires a utils4 update.
         elif os.path.splitext(arg)[1].lower() == '.7z':
             if not os.path.exists(arg):
                 raise FileNotFoundError(f'The requested archive was not found: {arg}')

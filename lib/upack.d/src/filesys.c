@@ -27,11 +27,15 @@
 #include <dirent.h>
 #include <errno.h>
 #include <libgen.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "base.h"
-#include "ui.h"
-#include "utils.h"
+#include "../include/base.h"
+#include "../include/ui.h"
+#include "../include/utils.h"
 
 /**
     Copy a single file from the source directory to the destination.
@@ -266,7 +270,7 @@ int removeall(const char *dpath, bool rmvdir, bool verbose) {
     DIR     *dp;
 
     if ( (dp = opendir(dpath)) == NULL ) {
-        reporterror("Error opening directory, does not exist.", false, false);
+        reporterror("Error opening directory for removal, does not exist.", false, false);
         return -1;
     }
     while ( (ep = readdir(dp)) ) {

@@ -24,7 +24,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "base.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include "../include/base.h"
 
 /**
     Display an alert message (msg) in red, to stderr.

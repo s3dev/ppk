@@ -5,9 +5,9 @@ lib_about.plr: 10.00/10
 lib_argparser.plr: 10.00/10
 lib_config.plr: 10.00/10
 lib_pack.plr: 10.00/10
+lib_pip.plr: 10.00/10
 lib_upack.plr: 10.00/10
 lib_utilities.plr: 10.00/10
 lib_vtests.plr: 10.00/10
-setup.plr: 10.00/10
 ------------------------
-Run date: Thu 14 Mar 13:36:13 GMT 2024
+Run date: Thu 3 Apr 18:53:24 BST 2025

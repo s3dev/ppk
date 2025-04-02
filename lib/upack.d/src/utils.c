@@ -25,14 +25,61 @@
 */
 
 #include <openssl/sha.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include "base.h"
-#include "ui.h"
+#include "../include/base.h"
+#include "../include/ui.h"
 
 // Function prototypes
+bool is7zip(const char *path);
 void reporterror(const char *msg, bool show_usage, bool fatal);
 char *sha256_digest(const char *string);
 void usage(bool notice, bool exit_zero);
+
+/**
+    Verify a file is a 7zip archive.
+
+    Notes:
+        A file is tested to be a 7zip archive by checking the first six
+        bytes of the file itself, *not* using the file extension.
+
+    @param path Pointer to the full path of the file to be tested.
+    @return Returns true if the first six bytes of the file match the
+            expected file signature for a 7zip archive, namely:
+
+            - 0x37 0x7A 0xBC 0xAF 0x27 0x1C
+*/
+bool
+is7zip(const char *path) {
+
+    char msgbuf[256];
+    size_t bytes;
+    unsigned char buf[6];
+    FILE *fp;
+
+    if ( (fp = fopen(path, "rb")) == NULL ) {
+        perror("Error opening archive for file type testing");
+        return false;
+    }
+    if ( (bytes = fread(buf, 1, 6, fp)) != 6 ) {
+        fclose(fp);
+        sprintf(msgbuf, "Expecting a 6-byte read, got %ld\n", bytes);
+        reporterror(msgbuf, false, true);
+        return false;
+    }
+    fclose(fp);
+    if ( !(   buf[0] == 0x37 
+           && buf[1] == 0x7a 
+           && buf[2] == 0xbc 
+           && buf[3] == 0xaf 
+           && buf[4] == 0x27 
+           && buf[5] == 0x1c) ) {
+        return false;
+    }
+    return true;
+}
 
 /**
     Display an error message (to stderr) and exit the program if instructed.

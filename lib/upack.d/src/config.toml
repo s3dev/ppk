@@ -1,0 +1,11 @@
+#
+#   Basic config file for ppk's upackw program.
+#
+#   Tips:
+#       - dir_*: Use a forward slash as the path separator.
+#
+
+[paths]
+dir_pip_repo = "/tmp/pip/repo"
+dir_ppk_tmp = "/tmp/.ppk"
+

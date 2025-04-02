@@ -5,6 +5,23 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include <stdbool.h>
+
+/**
+    Verify a file is a 7zip archive.
+
+    Notes:
+        A file is tested to be a 7zip archive by checking the first six
+        bytes of the file itself, *not* using the file extension.
+
+    @param path Pointer to the full path of the file to be tested.
+    @return Returns true if the first six bytes of the file match the
+            expected file signature for a 7zip archive, namely:
+
+            - 0x37 0x7A 0xBC 0xAF 0x27 0x1C
+*/
+bool is7zip(const char *path);
+
 /**
     Display an error message (to stderr) and exit the program if instructed.
 
