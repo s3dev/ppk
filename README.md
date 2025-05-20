@@ -143,7 +143,7 @@ First, transfer the encrypted archive (the `.7z` file) to the secured environmen
 Next, use `ppk`'s unpacker to decrypt the archive and transfer the libraries into the local pip repo. For example, to decrypt and transfer the archive we downloaded earlier for `pandas` 2.0.1:
 
 ``` bash
-$ ppk ~/Desktop/pandas-2.0.1-cp311-cp311-manylinux2014_x86_64.7z
+$ ppk ~/Desktop/pandas-2.0.1-cp311-cp311-manylinux2014_x86_64-311.7z
 ```
 
 When `ppk` detects a file extension of `.7z`, the unpacker utility is automatically called.
@@ -155,7 +155,8 @@ The basic steps are:
 1. Download the `upackw.exe` executable from GitHub.
 1.  Unpack your `.7z` archive as:
  ``` cmd
-> upackw.exe c:\path\to\archive\pandas-2.0.1-cp311-cp311-win_amd64.7z
+> upackw.exe c:\path\to\archive\pandas-2.0.1-cp311-cp311-win_amd64-311.7z
  ```
 Further detail and guidance can be found on the [project's GitHub page](https://github.com/s3dev/upackw).
+
 

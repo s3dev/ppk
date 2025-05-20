@@ -4,7 +4,7 @@ Release Checklist
 
 #. Verify the version number has been updated.
     - _version.py
-    - base.h
+    - base.h (Only if the unpacker's version has changed)
 
 #. Run test cases (if applicable) on a new branch.
 

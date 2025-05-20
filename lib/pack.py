@@ -144,6 +144,8 @@ class PPKPacker:
                             f'{self._py_version}-'
                             f'{self._abi}-'
                             f'{self._platform}')
+            if self._args.python_version:
+                self._ofname += f'-{self._args.python_version[0]}'
 
     def _cleanup(self, force: bool=False):
         """Class tear-down and internal cleanup method.
