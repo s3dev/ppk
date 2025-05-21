@@ -14,12 +14,14 @@ The `ppk` packer utility is, at its very core, a wrapper around the `pip downloa
 
 Using the supplied arguments, a Python library (and its dependencies) are downloaded from [PyPI](https://pypi.org/) using a subprocess call to `pip download`. Once the download has completed, a series of vulnerability checks are conducted on *each* downloaded file to help ensure the code contained within is not reported to have vulnerabilities or to be malicious.
 
-The following vulnerability tests are conducted on *each* downloaded file:
+The following vulnerability tests can be conducted on *each* downloaded file:
  - **MD5 checksum:** The hash of the downloaded file is compared with the hash for the same file, as stored by PyPI.
- - **Security vulnerabilities:** The [Snyk security database](https://security.snyk.io/) is searched to determine if any vulnerabilities have been discovered and reported in the specific library.
- - **Code scanning:** Coming soon, via the [`badsnakes`](https://pypi.org/project/badsnakes/) project which is currently under development.
+ - **Security vulnerabilities:**
+	 - Search the [Snyk security database](https://security.snyk.io/) to determine if any vulnerabilities have been discovered and reported in the specific library.
+	 - Search the [OSV vulnerability database](https://osv.dev/) to determine if any vulnerabilities have been discovered and reported in the specific library.
+ - **Code scanning:** The [`badsnakes`](https://pypi.org/project/badsnakes/) project can be used to scan a library at code level. *Integration coming soon*
 
-If all security checks pass, an encrypted `.7z` archive is created on your desktop containing the downloaded libraries. This archive is then transferred to the secured environment. 
+If all security checks pass, an encrypted `.7z` archive is created on your desktop containing the downloaded libraries. This archive is then transferred to the secured environment.
 
 Finally, `ppk`'s *unpacker* utility is used to unpack this archive into the environment's secured local pip repository; where a user can install the library using a standard `pip install <package-name>` command from the terminal.
 
@@ -31,14 +33,14 @@ For example, the help menu can be displayed at any point by providing the `--hel
 
 ``` bash
 $ ppk --help
-``` 
+```
 
 ### Downloading and installing
-The simple steps below guide you through downloading, building and installing `ppk`. 
+The simple steps below guide you through downloading, building and installing `ppk`.
 
 **Reminder:** `ppk` must be installed on the secured environment *and* on an internet-connected PC.
 
-> **Important Note:** 
+> **Important Note:**
 > `ppk` is designed to run on Linux systems.
 >
 >However, as the *packer* is written in CPython, it can be adapted to Windows (with minimal effort) and does *not* require installation; it can be run directly from the source download.
@@ -55,8 +57,8 @@ The simple steps below guide you through downloading, building and installing `p
 	- Enter the path to the virtual environment created above. For example: `/var/venvs/ppk311`
 	- Enter the installation path for `ppk`. The default is `/usr/local/bin`.
 1. Test the installation was successful by typing: `ppk --help`.
-1. [Optional]: Update the *path to the local pip repo* in the `lib/upack.d/bin/config.toml` file, updating the `dir_pip_repo` key. This is the path into which the unpacker will transfer the libraries. 
-1. [Optional]: Update the name of the program used to refresh the pip repo in the `lib/config.json` file, updating the `pip_refresh_prog` key. This program is called by `ppk` after each unpacking.
+1. [Optional]: Update the *path to the local pip repo* in the `libs/upack.d/bin/config.toml` file, updating the `dir_pip_repo` key. This is the path into which the unpacker will transfer the libraries.
+1. [Optional]: Update the name of the program used to refresh the pip repo in the `libs/config.toml` file, updating the `system.paths.pip_refresh` key. This program is called by `ppk` after each unpacking.
 
 
 ## Using `ppk` to download from PyPI
@@ -69,7 +71,7 @@ The following example demonstrates a simplified use of the utility to download t
 
 ``` bash
 # Download pandas
-$ ppk pandas 
+$ ppk pandas
 ```
 
 #### Specifying the library version
@@ -116,7 +118,7 @@ python-dateutil==2.8.2
 pytz==2023.3.post1
 six==1.16.0
 tzdata==2023.3
-``` 
+```
 
 The following example demonstrates how to pass a `requirements.txt` file to `ppk`:
 
@@ -129,7 +131,7 @@ $ ppk /path/to/requirements.txt
 ## Transferring and unpacking an encrypted archive
 Once the Python libraries have been downloaded and tested, they are archived into an encrypted `.7z` file on your local desktop, ready for transfer to the secured environment. However, if the security checks fail, an archive is *not* created. For libraries which pass the security checks,  `ppk` is then used to *unpack* the encrypted archive containing the downloaded libraries onto the environment's secured local pip repository.
 
-### 7zip 
+### 7zip
 Beginning with `ppk` version 0.2.0, we introduced *encrypted, password-protected archiving* to help make the archive transfer more secure, and requires 7zip to be installed on your system.
 
 If you don't have 7zip available, it is [freely available](https://7-zip.org/faq.html) under the [GNU LGPL licence](https://7-zip.org/faq.html#developer_faq).
@@ -143,19 +145,18 @@ First, transfer the encrypted archive (the `.7z` file) to the secured environmen
 Next, use `ppk`'s unpacker to decrypt the archive and transfer the libraries into the local pip repo. For example, to decrypt and transfer the archive we downloaded earlier for `pandas` 2.0.1:
 
 ``` bash
-$ ppk ~/Desktop/pandas-2.0.1-cp311-cp311-manylinux2014_x86_64.7z
+$ ppk ~/Desktop/pandas-2.0.1-cp311-cp311-manylinux2014_x86_64-311.7z
 ```
 
 When `ppk` detects a file extension of `.7z`, the unpacker utility is automatically called.
 
 ### Unpacking on Windows
-The builtin unpacker utility is compiled for and designed to work on Unix/Linux systems only. If your pip repository is on a Windows system, a different unpacking approach will be required as you'll need the `upackw` executable, which can be downloaded from the [GitHub releases page](https://github.com/s3dev/upackw/releases). 
+The builtin unpacker utility is compiled for and designed to work on Unix/Linux systems only. If your pip repository is on a Windows system, a different unpacking approach will be required as you'll need the `upackw` executable, which can be downloaded from the [GitHub releases page](https://github.com/s3dev/upackw/releases).
 
-The basic steps are: 
+The basic steps are:
 1. Download the `upackw.exe` executable from GitHub.
 1.  Unpack your `.7z` archive as:
  ``` cmd
-> upackw.exe c:\path\to\archive\pandas-2.0.1-cp311-cp311-win_amd64.7z
+> upackw.exe c:\path\to\archive\pandas-2.0.1-cp311-cp311-win_amd64-311.7z
  ```
 Further detail and guidance can be found on the [project's GitHub page](https://github.com/s3dev/upackw).
-

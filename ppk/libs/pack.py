@@ -2,20 +2,20 @@
 # -*- coding: utf-8 -*-
 """
 :App:       pack.py
-:Purpose:   This program is used to download Python packages from PyPI
-            and verify the integrity of these packages to ensure they
-            are deemed 'safe' for use in a sensitive environment.
+:Purpose:   This module provides the project's library downloading and
+            packing functionality, by downloading Python packages from
+            PyPI and verifying the integrity of these packages to ensure
+            they are deemed 'safe' for use in a sensitive environment.
 
-            Essentially, this program wraps ``pip download`` and runs
-            MD5 integrity and vulnerability checks for the package and
-            its downloaded dependencies.
+            The lower-level download and security checking functionalilty
+            is provided by the ``ppklib`` library.
 
-            If the package and its dependencies have passed the checks,
-            they - along with the testing report/log - are added to an
-            encrypted archive file and stored on the user's Desktop for
-            transfer to the secured environment.
+            If the target package and its dependencies pass the security
+            checks, they - along with the testing report/log - are added
+            to an encrypted archive file and stored on the user's Desktop
+            for transfer to the secured environment.
 
-:Platform:  Linux/Windows | Python 3.6+
+:Platform:  Linux/Windows | Python 3.10+
 :Developer: J Berendt
 :Email:     development@s3dev.uk
 
@@ -35,16 +35,17 @@ from argparse import Namespace
 from collections import defaultdict
 from datetime import datetime as dt
 from glob import glob
+from ppklib.libs.utilities import utilities
+from ppklib.pip import Download
+from ppklib.vtests import VTests
 from utils4.crypto import crypto
 from utils4.user_interface import ui
 # locals
-from lib.utilities import utilities
-from lib.vtests import Tests
-from lib.pip import Download
+from ppk.libs.config import sysconfig
 
 
 class PPKPacker:
-    """Primary worker class for package integrity checks and packing.
+    """Primary worker class for package download, security and packing.
 
     Args:
         args (argparse.Namespace): The Namespace object directly from
@@ -52,20 +53,17 @@ class PPKPacker:
 
     """
 
-    # List the tests to be run here.
-    # These are method names from the libs.tests.Tests class.
-    _TESTS = ['md5', 'snyk']
-
     def __init__(self, args: Namespace):
         """Package check class initialiser."""
         self._args = args           # All arguments parsed from the CLI
         self._abi = 'unset'         # The ABI tag, as parsed from the package filename.
-        self._ofname = None         # The name of the outfile (no extension).
         self._md5 = None            # Package's MD5 digest from PyPI
+        self._name = None           # Name of the target package (per CLI).
+        self._namev = None          # The target package version requested via the CLI.
+        self._ofname = None         # The name of the outfile (no extension).
         self._pass = False          # *Overall* passing flag for the entire test.
         self._passflags = []        # *Overall* passing flag from each test.
-        self._pkg = None            # Name of the primary package (per CLI).
-        self._pkg_dl = None         # Downloaded package name (wheel, or tar.gz)
+        self._pkgpath = None        # Path to the downloaded package (wheel, or tar.gz)
         self._pkg_version = 'unset' # Package version, as parsed from the filename.
         self._py_version = 'unset'  # Python version for which the packages are downloaded.
         self._platform = 'unset'    # Platform for which the packages are downloaded.
@@ -80,7 +78,7 @@ class PPKPacker:
 
             - Normalise and set the package name.
             - Create the temporary download / working directory.
-            - Run ``pip download`` via a subprocess call, using the
+            - Run ``pip download`` via a library call, using the
               arguments passed into the CLI by the user.
             - Obtain the package's version number, and ABI by parsing the
               filename of the downloaded wheel.
@@ -130,20 +128,23 @@ class PPKPacker:
 
         """
         if self._args.from_req:
-            self._ofname = (f'frz-'
-                            f'{utilities.get_username()}-'
+            if ( plt := self._args.platform ) is not None:
+                self._platform = plt[0]
+            if ( pyv := self._args.python_version) is not None:
+                pyv = pyv[0]
+            self._ofname = (f'req-'
+                            '0.0.0-'
                             f'{dt.now().strftime("%Y%m%d%H%M%S")}-'
-                            f'{self._pkg}-'
-                            f'{self._pkg_version}-'
-                            f'{self._py_version}-'
-                            f'{self._abi}-'
+                            f'{utilities.get_username()}-'
                             f'{self._platform}')
         else:
-            self._ofname = (f'{self._pkg}-'
+            self._ofname = (f'{self._name}-'
                             f'{self._pkg_version}-'
                             f'{self._py_version}-'
                             f'{self._abi}-'
                             f'{self._platform}')
+        if self._args.python_version:
+            self._ofname += f'-{self._args.python_version[0]}'
 
     def _cleanup(self, force: bool=False):
         """Class tear-down and internal cleanup method.
@@ -163,9 +164,10 @@ class PPKPacker:
 
         """
         if (not self._args.no_cleanup and self._pass) or force:
-            for f in glob(os.path.join(self._tmpdir, '*')):
-                os.unlink(f)
-            os.removedirs(self._tmpdir)
+            if os.path.isdir(self._tmpdir):
+                for f in glob(os.path.join(self._tmpdir, '*')):
+                    os.unlink(f)
+                os.removedirs(self._tmpdir)
 
     def _copy_requirements_file(self):
         """Copy the requirements file (if applicable) into the temp dir.
@@ -178,7 +180,7 @@ class PPKPacker:
 
         """
         if self._args.from_req:
-            shutil.copy(src=self._pkg,
+            shutil.copy(src=self._name,
                         dst=os.path.join(self._tmpdir, f'{self._ofname}.txt'))
 
     def _create_archive(self):
@@ -223,7 +225,7 @@ class PPKPacker:
                 os.unlink(opath)
             with sp.Popen(cmd_, stdout=sp.PIPE, stderr=sp.PIPE) as proc:
                 stdout, stderr = proc.communicate()
-            if proc.returncode:
+            if proc.returncode:  # nocover
                 ui.print_alert(('\nAn error occurred while creating the archive. '
                                 f'Exit code: {proc.returncode}'), style='bold')
                 raise RuntimeError('\n'.join(('Output from subprocess ...',
@@ -250,7 +252,7 @@ class PPKPacker:
 
         """
         if not self._args.from_req:
-            base = self._pkg_dl
+            base = os.path.basename(self._pkgpath)
             # Source packages (.tar.gz)
             if os.path.splitext(base)[1] == '.gz':
                 m = re.match(r'(.*?)(?:\.tar)?\.gz', base)
@@ -279,7 +281,10 @@ class PPKPacker:
                     {'tzdata-2023.3-py2.py3-none-any.whl': [True, True]}
 
         """
-        header = 'datetime,host,user,package,md5,vuln,dv_c,dv_h,dv_m,dv_l,result\n'
+        # The header is generated dynamically based on the selected tests.
+        header = 'datetime,host,user,package,{tests},result\n'
+        testheader = ','.join(sysconfig['headers'].get(test) for test in sysconfig['tests'])
+        header = header.format(tests=testheader)
         # Set the filenames for the *.key and *.log files.
         self._p_key = os.path.join(self._tmpdir, f'{self._ofname}__verification.key')
         self._p_log = os.path.join(self._tmpdir, f'{self._ofname}__verification.log')
@@ -289,12 +294,12 @@ class PPKPacker:
         with open(self._p_log, 'w', encoding='utf-8') as f:
             f.write(header)
             for k, v in results.items():
-                # Flatten the test results tuples.
+                # The pass/fail flag is the first element in each test tuple.
+                localpassflags = [i[0] for i in v]
+                _pass = 'pass' if all(localpassflags) else 'fail'
+                # Flatten the test results tuples for logging.
                 v_ = list(itertools.chain(*v))
-                # The first two elements are the verification flags' the
-                # following elements are supporting data.
-                _pass = 'pass' if all(v_[:2]) else 'fail'
-                self._passflags.extend(v_[:2])
+                self._passflags.extend(localpassflags)
                 line = f'{dtme},{host},{user},{k},{",".join(map(str, v_))},{_pass}\n'
                 f.write(line)
 
@@ -322,14 +327,18 @@ class PPKPacker:
         """Normalise and set the package name.
 
         If the package name was provided with version constraints, these
-        are removed and any hyphens are converted to underscores.
+        are split and the name is normalised.
 
         """
-        chars = ('<', '>', '=')  # Version control chars to be removed.
-        self._pkg = self._args.package[0].replace('-', '_')
+        chars = {'<', '>', '='}  # Version control chars to be removed.
+        pkg = self._args.package[0]
         # Clean: Remove the requested version from the package name.
-        if set(chars).intersection(self._pkg):
-            self._pkg = re.split(f'[{"".join(chars)}]', self._pkg, maxsplit=1)[0]
+        if chars.intersection(pkg):
+            self._name, _, self._namev = re.split(f'[{"".join(chars)}]', pkg, maxsplit=2)
+        else:
+            self._name = pkg
+        if not self._args.from_req:
+            self._name = utilities.normalise_name(name=self._name)
 
     def _pip_download(self) -> str | None:
         """Download the package via pip.
@@ -339,15 +348,34 @@ class PPKPacker:
             otherwise None.
 
         """
-        pipdl = Download(args=self._args, name=self._pkg, tmpdir=self._tmpdir)
-        self._pkg_dl = pipdl.get()
-        return self._pkg_dl is not None
+        # Prepare (flatten) args. None of the arguments should be lists.
+        # All should be key/value strings.
+        flatargs = {}
+        for k, v in self._args.__dict__.items():
+            if isinstance(v, list):
+                flatargs[k] = v[0]
+            else:
+                flatargs[k] = v
+        if self._args.from_req:
+            dl = Download(name=None,
+                          version=None,
+                          args=flatargs,
+                          reqfile=self._name,
+                          tmpdir=self._tmpdir)
+        else:
+            dl = Download(name=self._name,
+                          version=self._namev,
+                          args=flatargs,
+                          tmpdir=self._tmpdir)
+        dl.get()
+        self._pkgpath = dl.pkgpath
+        return self._pkgpath is not None
 
     def _print_summary(self):
         """Print an end-of-processing summary to the terminal."""
         flag = 'PASSED' if self._pass else 'FAILED'
         print('\nProcessing complete.',
-              f'The {self._pkg} package has: {flag}\n',
+              f'The {self._name} package has: {flag}\n',
               sep='\n')
         if self._pass:
             print('There is an *encrypted* .7z archive file on your desktop which contains ',
@@ -355,7 +383,7 @@ class PPKPacker:
                   'file can be transferred to the destination and unpacked, using ppk.',
                   '',
                   sep='\n')
-        else:
+        else:  # nocover
             print('Please check the log file for the failing packages, in:',
                   f'-- {self._tmpdir}',
                   '',
@@ -374,23 +402,19 @@ class PPKPacker:
             if ext == '.gz':
                 *pkg_, vers_ = fname[:fname.rfind('.tar.gz')].split('-')
                 pkg_ = '-'.join(pkg_)
-            elif ext == '.zip':
+            elif ext == '.zip':  # nocover
                 pkg_, vers_ = fn.split('-')
             else:
-                pkg_, vers_, *_ = fname.split('-')
+                pkg_, vers_, *_ = fname.split('-')  # this is needed for the Snyk test.
             args = {'fpath': fpath, 'name': pkg_, 'version': vers_}
             # ----------------------------------------------------------
             #
             #        The testing loop - perform all listed tests.
             #
             # ----------------------------------------------------------
-            for test in self._TESTS:
+            for test in sysconfig['tests']:
                 # Run test and update results for logging.
-                results[fname].append(Tests().__getattribute__(test)(**args))
-        # Force failure for testing -- DEV ONLY.
-        # results['six-1.16.0-py2.py3-none-any.whl'][0] = False,
-        # results['six-1.16.0-py2.py3-none-any.whl'][1] = False,4,3,2,1
-        # --|
+                results[fname].append(VTests().__getattribute__(test)(**args))
         self._log(results=results)
         # Calculate the *overall* pass/fail and store to attrib for summary.
         self._pass = all(self._passflags)

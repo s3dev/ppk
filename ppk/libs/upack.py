@@ -27,7 +27,7 @@ import subprocess as sp
 import traceback
 from utils4.user_interface import ui
 # locals
-from lib.config import config
+from ppk.libs.config import sysconfig
 
 
 class PPKUnPacker:
@@ -47,7 +47,7 @@ class PPKUnPacker:
     """
 
     _DIR_ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-    _DIR_UPACK = os.path.join(_DIR_ROOT, 'lib/upack.d/bin')
+    _DIR_UPACK = os.path.join(_DIR_ROOT, 'libs/upack.d/bin')
 
     def __init__(self, fpath: str):
         """Unpacker class initialiser."""
@@ -56,7 +56,7 @@ class PPKUnPacker:
     def refresh(self) -> int:
         """Refresh the environment's local pip repository.
 
-        Using the ``pip_refresh_prog`` key in the ``config.json`` file,
+        Using the ``paths.pip_refresh`` key in the ``config.toml`` file,
         if that program exists, it is called. Otherwise a warning
         message is displayed to the user.
 
@@ -65,7 +65,7 @@ class PPKUnPacker:
             If an exception is found, 1 is returned.
 
         """
-        prog = config.pip_refresh_prog
+        prog = sysconfig['paths'].get('pip_refresh')
         if shutil.which(prog) is not None:
             try:
                 cmd = [prog]

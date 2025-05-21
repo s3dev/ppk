@@ -29,17 +29,18 @@
 
 """
 # pylint: disable=import-error
+# pylint: disable=no-name-in-module
 # pylint: disable=wrong-import-position
 
 import os
 import sys
 import traceback
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from utils4.user_interface import ui
 # locals
-from lib.argparser import argparser
-from lib.pack import PPKPacker
-from lib.upack import PPKUnPacker
+from ppk.libs.argparser import argparser
+from ppk.libs.pack import PPKPacker
+from ppk.libs.upack import PPKUnPacker
 
 
 class Main:

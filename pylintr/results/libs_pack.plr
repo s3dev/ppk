@@ -2,7 +2,7 @@
 
 Report
 ======
-143 statements analysed.
+165 statements analysed.
 
 Statistics by type
 ------------------
@@ -25,13 +25,18 @@ External dependencies
 ---------------------
 ::
 
+    ppklib 
+      \-libs 
+      | \-utilities (ppk.libs.pack)
+      \-pip (ppk.libs.pack)
+      \-vtests (ppk.libs.pack)
     utils4 
-      \-crypto (pack)
-      \-user_interface (pack)
+      \-crypto (ppk.libs.pack)
+      \-user_interface (ppk.libs.pack)
 
 
 
-398 lines have been analyzed
+422 lines have been analyzed
 
 Raw metrics
 -----------
@@ -39,13 +44,13 @@ Raw metrics
 +----------+-------+------+---------+-----------+
 |type      |number |%     |previous |difference |
 +==========+=======+======+=========+===========+
-|code      |174    |43.72 |174      |=          |
+|code      |202    |47.87 |202      |=          |
 +----------+-------+------+---------+-----------+
-|docstring |177    |44.47 |177      |=          |
+|docstring |178    |42.18 |178      |=          |
 +----------+-------+------+---------+-----------+
-|comment   |28     |7.04  |28       |=          |
+|comment   |24     |5.69  |24       |=          |
 +----------+-------+------+---------+-----------+
-|empty     |19     |4.77  |19       |=          |
+|empty     |18     |4.27  |18       |=          |
 +----------+-------+------+---------+-----------+
 
 

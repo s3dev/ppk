@@ -1,6 +1,7 @@
 # Directories to include
-recursive-include ./bin *.py
-recursive-include ./lib *.json *.py upack.d/bin/*
+recursive-include ./ppk *.py
+recursive-include ./ppk/bin *.py
+recursive-include ./ppk/libs *.toml *.py upack.d/bin/*
 
 # Files to include
 include LICENSE

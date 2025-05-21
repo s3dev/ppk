@@ -17,7 +17,8 @@ import argparse
 import os
 import sys
 # locals
-from lib._version import __version__
+from ppk.libs.config import sysconfig
+from ppk.libs._version import __version__
 
 
 class ArgParser:
@@ -30,8 +31,8 @@ class ArgParser:
     # Project root directory.
     _D_ROOT = sys.path[0]
     # Help menu options and descriptions.
-    _C_PLAT = ['win_amd64', 'manylinux2014_x86_64', 'manylinux2014_aarch64']
-    _C_PVER = [f'3{i}' for i in range(0, 14)]
+    _C_PLAT = sysconfig['platforms']
+    _C_PVER = sysconfig['pythonversions']
     _H_LICS = 'Display the LICENSE file and exit.'
     _H_BINR = ('Do not use source packages.\n'
                'Packages without binary distributions will fail to\n'

@@ -1,0 +1,28 @@
+#
+# Project configuration file.
+#
+
+#
+# Project-level configuration items.
+#
+[project]
+
+
+#
+# System-level configuration items.
+#
+[system]
+platforms = ["win_amd64", "manylinux2014_x86_64", "manylinux2014_aarch64"]
+pythonversions = ["310", "311", "312", "313"]
+# Note: These are method names from the ppklib.vtests.VTests class.
+#       List the tests in running order. These names correspond to the
+#       key names in [system.headers].
+tests = ["md5", "osv", "snyk"]
+
+[system.headers]
+md5 = "md5"
+osv = "osv,osv_c,osv_h,osv_m,osv_l"
+snyk = "snyk,snyk_c,snyk_h,snyk_m,snyk_l"
+
+[system.paths]
+pip_refresh = ""

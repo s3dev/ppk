@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #-------------------------------------------------------------------------
 # Prog:     install.sh
-# Version:  0.2.0
+# Version:  0.3.0
 # Desc:     Primary installer script for the ppk project.
 #
 #           Using the inputs from the user, this script generates the 
@@ -17,6 +17,8 @@
 # 12-03-24  J. Berendt  Written
 # 02-04-25  J. Berendt  Updated the shell wrapper creation to activate
 #                       and deactivate the venv. 
+# 05-22-25  J. Berendt  Updated the paths to include the new base ./ppk
+#                       directory.
 #-------------------------------------------------------------------------
 
 # Initialise variables.
@@ -36,7 +38,7 @@ function create_wrapper {
     local activatepath="$( find "${_venv}" -name activate )"
 
     # Create wrapper script.
-    cat <<- EOF > ./bin/_ppk.sh
+    cat <<- EOF > ./ppk/bin/_ppk.sh
 	#!/usr/bin/env bash
 
 	_dir="\$( dirname "\$( realpath "\$0" )" )"
@@ -48,7 +50,7 @@ function create_wrapper {
 	EOF
 
     # Make the script executable.
-    chmod 755 ./bin/_ppk.sh
+    chmod 755 ./ppk/bin/_ppk.sh
 }
 
 #
