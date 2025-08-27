@@ -59,7 +59,8 @@ class TestPack(TestBase):
                             'platform': None,
                             'python_version': None,
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -80,7 +81,8 @@ class TestPack(TestBase):
                             'platform': ['win_amd64'],
                             'python_version': None,
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -101,7 +103,8 @@ class TestPack(TestBase):
                             'platform': ['win_amd64'],
                             'python_version': ['311'],
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -122,11 +125,77 @@ class TestPack(TestBase):
                             'platform': ['win_amd64'],
                             'python_version': ['312'],
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
             self.assertEqual(0, tst)
+        self._test_archive_created(opack=p)
+
+    def test01e__main__preqs__exclude(self):
+        """Test the ``main`` method with an excluded package.
+
+        :Test:
+            - Download the named package with mock CLI arguments,
+              including the --exclude argument.
+            - Verify the exit code is as expected.
+            - Verify the archive was created and named as expected.
+            - Remove the downloaded archive and temp directory.
+
+        """
+        args = Namespace(**{'package': ['preqs'],
+                            'platform': None,
+                            'python_version': None,
+                            'from_req': False,
+                            'no_cleanup': True,
+                            'exclude': ['packaging']})
+        p = PPKPacker(args=args)
+        tst = p.main()
+        with self.subTest('Exit code'):
+            self.assertEqual(0, tst)
+        with self.subTest('Excludes package'):
+            with open(p._p_log, 'r', encoding='ascii') as f:
+                text = f.read()
+            self.assertTrue('packaging' not in text)
+        self._test_archive_created(opack=p)
+
+    def test01f__main__ppklib__exclude(self):
+        """Test the ``main`` method with an excluded package.
+
+        :Test:
+            - Download the named package with mock CLI arguments,
+              including the --exclude argument.
+            - Verify the exit code is as expected.
+            - Verify the archive was created and named as expected.
+            - Remove the downloaded archive and temp directory.
+
+        """
+        exclude = ['beautifulsoup4',
+                   'certifi',
+                   'charset_normalizer',
+                   'colorama',
+                   'idna',
+                   'requests',
+                   'setuptools',
+                   'soupsieve',
+                   'typing_extensions',
+                   'urllib3',
+                   'utils4']
+        args = Namespace(**{'package': ['ppklib'],
+                            'platform': 'win_amd64',
+                            'python_version': '312',
+                            'from_req': False,
+                            'no_cleanup': True,
+                            'exclude': exclude})
+        p = PPKPacker(args=args)
+        tst = p.main()
+        with self.subTest('Exit code'):
+            self.assertEqual(0, tst)
+        with self.subTest('Excludes package'):
+            with open(p._p_log, 'r', encoding='ascii') as f:
+                text = f.read()
+            self.assertTrue(all(map(lambda x: x not in text, exclude)))
         self._test_archive_created(opack=p)
 
     def test02a__main__utils4(self):
@@ -139,11 +208,12 @@ class TestPack(TestBase):
             - Remove the downloaded archive and temp directory.
 
         """
-        args = Namespace(**{'package': ['utils4'],
+        args = Namespace(**{'package': ['utils4==1.7.0'],
                             'platform': None,
                             'python_version': None,
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -160,11 +230,12 @@ class TestPack(TestBase):
             - Remove the downloaded archive and temp directory.
 
         """
-        args = Namespace(**{'package': ['utils4'],
+        args = Namespace(**{'package': ['utils4==1.7.0'],
                             'platform': 'win_amd64',
                             'python_version': None,
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -181,11 +252,12 @@ class TestPack(TestBase):
             - Remove the downloaded archive and temp directory.
 
         """
-        args = Namespace(**{'package': ['utils4'],
+        args = Namespace(**{'package': ['utils4==1.7.0'],
                             'platform': 'win_amd64',
                             'python_version': ['311'],
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -202,11 +274,12 @@ class TestPack(TestBase):
             - Remove the downloaded archive and temp directory.
 
         """
-        args = Namespace(**{'package': ['utils4'],
+        args = Namespace(**{'package': ['utils4==1.7.0'],
                             'platform': 'win_amd64',
                             'python_version': ['312'],
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -227,7 +300,8 @@ class TestPack(TestBase):
                             'platform': 'win_amd64',
                             'python_version': ['312'],
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -249,7 +323,8 @@ class TestPack(TestBase):
                             'platform': 'win_amd64',
                             'python_version': ['312'],
                             'from_req': False,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst1 = p.main()
         tst2 = p.main()
@@ -274,7 +349,8 @@ class TestPack(TestBase):
                             'platform': None,
                             'python_version': None,
                             'from_req': True,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -297,7 +373,8 @@ class TestPack(TestBase):
                             'platform': ['win_amd64'],
                             'python_version': None,
                             'from_req': True,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -320,7 +397,8 @@ class TestPack(TestBase):
                             'platform': ['win_amd64'],
                             'python_version': ['311'],
                             'from_req': True,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
@@ -343,13 +421,13 @@ class TestPack(TestBase):
                             'platform': ['win_amd64'],
                             'python_version': ['312'],
                             'from_req': True,
-                            'no_cleanup': True})
+                            'no_cleanup': True,
+                            'exclude': None})
         p = PPKPacker(args=args)
         tst = p.main()
         with self.subTest('Exit code'):
             self.assertEqual(0, tst)
         self._test_archive_created_from_requirements(opack=p)
-
 
 # %% Helper methods
 

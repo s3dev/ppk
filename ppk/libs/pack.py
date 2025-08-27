@@ -26,6 +26,7 @@
 
 import hashlib
 import itertools
+import logging
 import os
 import re
 import socket
@@ -38,10 +39,13 @@ from glob import glob
 from ppklib.libs.utilities import utilities
 from ppklib.pip import Download
 from ppklib.vtests import VTests
+from utils4 import utils
 from utils4.crypto import crypto
 from utils4.user_interface import ui
 # locals
 from ppk.libs.config import sysconfig
+
+logger = logging.getLogger(__name__)
 
 
 class PPKPacker:
@@ -95,12 +99,14 @@ class PPKPacker:
             otherwise 1.
 
         """
+        self._is_accessible()
         self._set_package_name()
         self._make_download_directory()
         # Only process if the target package was downloaded.
         if self._pip_download():
             self._get_package_version_number()
             self._build_archive_name()
+            self._exclude_packages()
             self._verify_wheels()
             self._log_summary()
             self._copy_requirements_file()
@@ -233,6 +239,18 @@ class PPKPacker:
                                               stderr.decode())))
             print('Done.')
 
+    def _exclude_packages(self):
+        """Delete the excluded packages from the temp directory."""
+        if self._args.exclude:
+            ui.print_warning('[NOTE]: The following package(s) will be excluded from the archive:')
+            for excl in self._args.exclude:
+                print(f'- {excl}')
+                path = os.path.join(self._tmpdir, f'{excl}-*.whl')
+                if file := glob(path):
+                    os.unlink(file[0])
+            if len(self._args.exclude) == 1:
+                print()  # Blank line after output. Only needed for single output.
+
     def _generate_archive_filename(self) -> tuple[str, str]:
         """Generate the filename for the output archive.
 
@@ -266,6 +284,17 @@ class PPKPacker:
                  self._abi,
                  self._platform,
                  *_) = base_.split('-')
+
+    def _is_accessible(self) -> None:
+        """Test if pypi.org is accessible.
+
+        Raises:
+            RuntimeError: Raised if a ping to pypi.org does not return a
+            response.
+
+        """
+        if not utils.ping('https://pypi.org', count=3):  # nocover
+            raise RuntimeError('pypi.org is not accessible. Is the system online?')
 
     def _log(self, results: dict[list]):
         """Create a log file for this package's verification.

@@ -14,11 +14,14 @@
 # pylint: disable=import-error
 
 import argparse
+import logging
 import os
 import sys
 # locals
 from ppk.libs.config import sysconfig
 from ppk.libs._version import __version__
+
+logger = logging.getLogger(__name__)
 
 
 class ArgParser:
@@ -36,8 +39,14 @@ class ArgParser:
     _H_LICS = 'Display the LICENSE file and exit.'
     _H_BINR = ('Do not use source packages.\n'
                'Packages without binary distributions will fail to\n'
-               'download when this option is used on them.')
-    _H_NDEP = 'Do not download package dependencies.'
+               'download when this option is used on them.\n'
+               '- Passes the --only-binary argument to pip.')
+    _H_DBUG = 'Stream debugging output to the terminal.'
+    _H_EXCL = 'Package name(s) to be excluded from the security check and archive.'
+    _H_NCAC = ('Disable the cache.\n'
+               '- Passes the --no-cache argument to pip.')
+    _H_NDEP = ('Do not download package dependencies.\n'
+               '- Passes the --no-deps argument to pip.')
     _H_PKGN = (
                'If *downloading* a single library:\n'
                '  - Name of the library to be downloaded.\n'
@@ -65,7 +74,8 @@ class ArgParser:
     _H_NOCL = ('Disable the automatic temp file cleanup. Leaves all\n'
                'files in place.')
     _H_USEL = ('Force pip to use the local repository, rather than PyPI.\n'
-                    'Generally, this is used for testing only.')
+                    'Generally, this is used for testing only.\n\n')
+    # Double newline to add separation in the help menu        ^^^
 
     def __init__(self):
         """Argument parser class initialiser."""
@@ -93,15 +103,21 @@ class ArgParser:
         parser = argparse.ArgumentParser(prog=self._PROG,
                                          description=self._DESC,
                                          formatter_class=argparse.RawTextHelpFormatter,
-                                         epilog=self._epilog())
+                                         epilog=self._epilog(),
+                                         add_help=False)
         parser.add_argument('package', nargs=1, type=str, help=self._H_PKGN)
+        parser.add_argument('--no_cache', action='store_true', help=self._H_NCAC)
         parser.add_argument('--no_deps', action='store_true', help=self._H_NDEP)
         parser.add_argument('--only_binary', action='store_true', help=self._H_BINR)
+        parser.add_argument('--exclude', nargs='*', help=self._H_EXCL)
         parser.add_argument('--platform', choices=self._C_PLAT, nargs=1, type=str, help=self._H_PLAT)
         parser.add_argument('--python_version', choices=self._C_PVER, nargs=1, type=str, help=self._H_PVER)
-        parser.add_argument('--license', action='store_true', help=self._H_LICS)
+        parser.add_argument('-d', '--debug', action='store_true', help=self._H_DBUG)
         parser.add_argument('-n', '--no_cleanup', action='store_true', help=self._H_NOCL)
         parser.add_argument('-u', '--use_local', action='store_true', help=self._H_USEL)
+        # -- Visual separation --
+        parser.add_argument('--license', action='store_true', help=self._H_LICS)
+        parser.add_argument('-h', '--help', action='help', help='Show this help message and exit.')
         parser.add_argument('-v', '--version', action='version', version=self._VERS)
         if '--license' in sys.argv:
             self._display_license()
@@ -109,6 +125,8 @@ class ArgParser:
             self._args = parser.parse_args()
             self._add_other_arguments()
             self._test_package()
+            self._set_logger()
+            logging.debug('CLI arguments: %s', self._args)
 
     def _add_other_arguments(self):
         """Update the ``Namespace`` object with additional arguments.
@@ -150,6 +168,24 @@ class ArgParser:
         with open(path, 'r', encoding='utf-8') as f:
             notice = f.read()
         return f'{notice}\n{self._PROG} v{self._VERS}'
+
+    def _set_logger(self):
+        """Set the debugging level based on the CLI argument.
+
+        The default logging level is set using the ``project.log_level``
+        key in ``config.toml``. However, if the ``--debug`` argument is
+        passed, the log level is set to 10 (DEBUG).
+
+        :Levels:
+            - 10: DEBUG
+            - 20: INFO
+            - 30: WARNING
+            - 40: ERROR
+            - 50: CRITICAL
+
+        """
+        level = logging.DEBUG if self._args.debug else logging.ERROR
+        logging.basicConfig(level=level, format="[%(levelname)s]: %(message)s")
 
     def _test_package(self):
         """Test whether the user is requesting to pack or unpack.

@@ -17,7 +17,7 @@ pythonversions = ["310", "311", "312", "313"]
 # Note: These are method names from the ppklib.vtests.VTests class.
 #       List the tests in running order. These names correspond to the
 #       key names in [system.headers].
-tests = ["md5", "osv", "snyk"]
+tests = ["md5", "osv"]
 
 [system.headers]
 md5 = "md5"

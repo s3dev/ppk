@@ -17,8 +17,8 @@ Using the supplied arguments, a Python library (and its dependencies) are downlo
 The following vulnerability tests can be conducted on *each* downloaded file:
  - **MD5 checksum:** The hash of the downloaded file is compared with the hash for the same file, as stored by PyPI.
  - **Security vulnerabilities:**
-	 - Search the [Snyk security database](https://security.snyk.io/) to determine if any vulnerabilities have been discovered and reported in the specific library.
-	 - Search the [OSV vulnerability database](https://osv.dev/) to determine if any vulnerabilities have been discovered and reported in the specific library.
+     - Search the [PyPA advisory database](https://github.com/pypa/advisory-database)  (via the [PyPI JSON API](https://docs.pypi.org/api/json/)) to determine if any [vulnerabilities](https://docs.pypi.org/api/json/#known-vulnerabilities) have been discovered and reported for the specific library.
+	 - Search the [OSV vulnerability database](https://osv.dev/) to determine if any vulnerabilities have been discovered and reported for the specific library.
  - **Code scanning:** The [`badsnakes`](https://pypi.org/project/badsnakes/) project can be used to scan a library at code level. *Integration coming soon*
 
 If all security checks pass, an encrypted `.7z` archive is created on your desktop containing the downloaded libraries. This archive is then transferred to the secured environment.
@@ -160,3 +160,4 @@ The basic steps are:
 > upackw.exe c:\path\to\archive\pandas-2.0.1-cp311-cp311-win_amd64-311.7z
  ```
 Further detail and guidance can be found on the [project's GitHub page](https://github.com/s3dev/upackw).
+
